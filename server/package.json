@@ -7,11 +7,16 @@
   "scripts": {
     "dev": "nodemon --watch src src/server.js",
     "start": "node src/server.js",
-    "db:create": "node src/seed/createDb.js",
-    "db:seed": "node src/seed/seed.js",
-    "db:reset": "node src/seed/createDb.js && node src/seed/seed.js"
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset --force",
+    "db:studio": "prisma studio",
+    "prisma:generate": "prisma generate",
+    "postinstall": "prisma generate",
+    "test": "node scripts/smoke.js"
   },
   "dependencies": {
+    "@prisma/client": "6.19.3",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
@@ -34,6 +39,10 @@
     "@anthropic-ai/sdk": "^0.129.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.7",
+    "prisma": "6.19.3"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }

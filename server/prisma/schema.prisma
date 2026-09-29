@@ -1,0 +1,651 @@
+// =========================================================
+// Nacre — schéma Prisma (MySQL / MariaDB)
+// Crée les tables via `prisma migrate` ; les noms physiques (snake_case)
+// sont ceux utilisés par l'API Express (Sequelize) : ne pas les modifier
+// sans adapter server/src/models/index.js.
+// Les colonnes JSON sont stockées en LONGTEXT (compatibilité MariaDB).
+// =========================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------
+// Organisation, comptes & paramètres
+// ---------------------------------------------------------
+
+model Clinic {
+  id        String   @id @db.VarChar(40)
+  name      String?  @db.VarChar(120)
+  city      String?  @db.VarChar(80)
+  address   String?  @db.VarChar(255)
+  phone     String?  @db.VarChar(40)
+  chairs    String?  @db.LongText
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("clinics")
+}
+
+model User {
+  id           String    @id @db.VarChar(40)
+  first        String?   @db.VarChar(80)
+  last         String?   @db.VarChar(80)
+  title        String?   @db.VarChar(10)
+  role         String    @db.VarChar(20)
+  isAdmin      Boolean?  @default(false) @map("is_admin")
+  spec         String?   @db.VarChar(120)
+  clinicId     String?   @map("clinic_id") @db.VarChar(40)
+  chair        String?   @db.VarChar(40)
+  color        String?   @db.VarChar(10)
+  email        String    @unique(map: "email") @db.VarChar(160)
+  phone        String?   @db.VarChar(40)
+  passwordHash String?   @map("password_hash") @db.VarChar(100)
+  twofaEnabled Boolean?  @default(false) @map("twofa_enabled")
+  twofaSecret  String?   @map("twofa_secret") @db.VarChar(64)
+  active       Boolean?  @default(true)
+  lastLoginAt  DateTime? @map("last_login_at") @db.DateTime(0)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("users")
+}
+
+model RolePermission {
+  role      String   @id @db.VarChar(20)
+  label     String?  @db.VarChar(60)
+  perms     String?  @db.LongText
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("role_permissions")
+}
+
+model Session {
+  id         String    @id @db.VarChar(40)
+  kind       String?   @default("staff") @db.VarChar(10)
+  userId     String?   @map("user_id") @db.VarChar(40)
+  patientId  String?   @map("patient_id") @db.VarChar(40)
+  ip         String?   @db.VarChar(64)
+  userAgent  String?   @map("user_agent") @db.VarChar(255)
+  lastSeenAt DateTime? @map("last_seen_at") @db.DateTime(0)
+  revokedAt  DateTime? @map("revoked_at") @db.DateTime(0)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("sessions")
+}
+
+model Setting {
+  key       String   @id @db.VarChar(60)
+  value     String?  @db.LongText
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("settings")
+}
+
+model Act {
+  code      String   @id @db.VarChar(12)
+  label     String?  @db.VarChar(120)
+  price     Decimal? @default(0.00) @db.Decimal(12, 2)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("acts")
+}
+
+model Counter {
+  key   String @id @db.VarChar(20)
+  value Int?   @default(0)
+
+  @@map("counters")
+}
+
+// ---------------------------------------------------------
+// Patients & dossier clinique
+// ---------------------------------------------------------
+
+model Patient {
+  id         String    @id @db.VarChar(40)
+  first      String?   @db.VarChar(80)
+  last       String?   @db.VarChar(80)
+  sex        String?   @db.VarChar(1)
+  dob        DateTime? @db.Date
+  profession String?   @db.VarChar(120)
+  clinicId   String?   @map("clinic_id") @db.VarChar(40)
+  phone      String?   @db.VarChar(40)
+  email      String?   @db.VarChar(160)
+  address    String?   @db.VarChar(255)
+  emergency  String?   @db.LongText
+  cover      String?   @db.VarChar(60)
+  coverNo    String?   @map("cover_no") @db.VarChar(40)
+  fileNo     String?   @map("file_no") @db.VarChar(20)
+  history    String?   @db.LongText
+  allergies  String?   @db.LongText
+  meds       String?   @db.LongText
+  smoker     Boolean?  @default(false)
+  dentistId  String?   @map("dentist_id") @db.VarChar(40)
+  tags       String?   @db.LongText
+  createdOn  DateTime? @map("created_on") @db.Date
+  avatar     String?   @db.VarChar(10)
+  notes      String?   @db.Text
+  noShows    Int?      @default(0) @map("no_shows")
+  lateCount  Int?      @default(0) @map("late_count")
+  reinforced Boolean?  @default(false)
+  consent    String?   @db.LongText
+  source     String?   @db.VarChar(40)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@index([clinicId], map: "patients_clinic_id")
+  @@index([last, first], map: "patients_last_first")
+  @@index([phone], map: "patients_phone")
+  @@map("patients")
+}
+
+model Appointment {
+  id        String    @id @db.VarChar(40)
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  dentistId String?   @map("dentist_id") @db.VarChar(40)
+  clinicId  String?   @map("clinic_id") @db.VarChar(40)
+  chair     String?   @db.VarChar(40)
+  date      DateTime? @db.Date
+  start     String?   @db.VarChar(5)
+  dur       Int?      @default(30)
+  type      String?   @db.VarChar(20)
+  status    String?   @db.VarChar(12)
+  note      String?   @db.VarChar(500)
+  late      Int?      @default(0)
+  moved     Boolean?  @default(false)
+  source    String?   @default("cabinet") @db.VarChar(12)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@index([date, clinicId], map: "appointments_date_clinic_id")
+  @@index([dentistId, date], map: "appointments_dentist_id_date")
+  @@index([patientId], map: "appointments_patient_id")
+  @@map("appointments")
+}
+
+model Consultation {
+  id           String    @id @db.VarChar(40)
+  patientId    String?   @map("patient_id") @db.VarChar(40)
+  dentistId    String?   @map("dentist_id") @db.VarChar(40)
+  date         DateTime? @db.Date
+  apptId       String?   @map("appt_id") @db.VarChar(40)
+  type         String?   @db.VarChar(20)
+  motif        String?   @db.VarChar(255)
+  anamnese     String?   @db.Text
+  history      String?   @db.Text
+  allergies    String?   @db.Text
+  observations String?   @db.Text
+  diagnosis    String?   @db.Text
+  proposed     String?   @db.Text
+  done         String?   @db.Text
+  notes        String?   @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@index([patientId, date], map: "consultations_patient_id_date")
+  @@map("consultations")
+}
+
+model OdontoChart {
+  patientId String   @id @map("patient_id") @db.VarChar(40)
+  teeth     String?  @db.LongText
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("odonto_charts")
+}
+
+model OdontoHistory {
+  id        Int       @id @default(autoincrement())
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  date      DateTime? @db.Date
+  user      String?   @db.VarChar(120)
+  tooth     String?   @db.VarChar(4)
+  layer     String?   @db.VarChar(10)
+  cond      String?   @db.VarChar(20)
+  action    String?   @db.VarChar(12)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@index([patientId], map: "odonto_histories_patient_id")
+  @@map("odonto_histories")
+}
+
+model Plan {
+  id        String     @id @db.VarChar(40)
+  patientId String?    @map("patient_id") @db.VarChar(40)
+  dentistId String?    @map("dentist_id") @db.VarChar(40)
+  title     String?    @db.VarChar(160)
+  createdOn DateTime?  @map("created_on") @db.Date
+  status    String?    @db.VarChar(12)
+  createdAt DateTime   @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  items     PlanItem[]
+
+  @@map("plans")
+}
+
+model PlanItem {
+  id        String    @id @db.VarChar(40)
+  planId    String?   @map("plan_id") @db.VarChar(40)
+  label     String?   @db.VarChar(160)
+  tooth     String?   @db.VarChar(20)
+  price     Decimal?  @default(0.00) @db.Decimal(12, 2)
+  status    String?   @db.VarChar(12)
+  planned   DateTime? @db.Date
+  done      DateTime? @db.Date
+  paid      Decimal?  @default(0.00) @db.Decimal(12, 2)
+  invoiced  Boolean?  @default(false)
+  position  Int?      @default(0)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  plan      Plan?     @relation(fields: [planId], references: [id], onDelete: Cascade, map: "plan_items_ibfk_1")
+
+  @@index([planId], map: "plan_id")
+  @@map("plan_items")
+}
+
+model OrthoCase {
+  id        String    @id @db.VarChar(40)
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  dentistId String?   @map("dentist_id") @db.VarChar(40)
+  appliance String?   @db.VarChar(120)
+  start     DateTime? @db.Date
+  months    Int?      @default(12)
+  current   Int?      @default(0)
+  fee       Decimal?  @default(0.00) @db.Decimal(12, 2)
+  paid      Decimal?  @default(0.00) @db.Decimal(12, 2)
+  stage     String?   @db.VarChar(120)
+  steps     String?   @db.LongText
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("ortho_cases")
+}
+
+model Prescription {
+  id        String    @id @db.VarChar(40)
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  dentistId String?   @map("dentist_id") @db.VarChar(40)
+  date      DateTime? @db.Date
+  items     String?   @db.LongText
+  notes     String?   @db.Text
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("prescriptions")
+}
+
+model Document {
+  id         String    @id @db.VarChar(40)
+  patientId  String?   @map("patient_id") @db.VarChar(40)
+  kind       String?   @db.VarChar(20)
+  title      String?   @db.VarChar(200)
+  date       DateTime? @db.Date
+  cat        String?   @db.VarChar(20)
+  seed       Int?      @default(1)
+  shared     Boolean?  @default(false)
+  consult    String?   @db.VarChar(160)
+  fromPortal Boolean?  @default(false) @map("from_portal")
+  reviewed   Boolean?  @default(true)
+  filePath   String?   @map("file_path") @db.VarChar(255)
+  mime       String?   @db.VarChar(100)
+  size       Int?      @default(0)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@index([patientId], map: "documents_patient_id")
+  @@map("documents")
+}
+
+model BeforeAfter {
+  id         String    @id @db.VarChar(40)
+  patientId  String?   @map("patient_id") @db.VarChar(40)
+  title      String?   @db.VarChar(160)
+  cat        String?   @db.VarChar(60)
+  before     DateTime? @db.Date
+  after      DateTime? @db.Date
+  shade      String?   @db.LongText
+  visibility String?   @db.VarChar(20)
+  consent    Boolean?  @default(false)
+  crowd      Boolean?  @default(false)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("before_afters")
+}
+
+model GeneratedDoc {
+  id        String    @id @db.VarChar(40)
+  type      String?   @db.VarChar(20)
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  date      DateTime? @db.Date
+  title     String?   @db.VarChar(200)
+  dentistId String?   @map("dentist_id") @db.VarChar(40)
+  body      String?   @db.Text
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("generated_docs")
+}
+
+// ---------------------------------------------------------
+// Finance
+// ---------------------------------------------------------
+
+model Quote {
+  id         String    @id @db.VarChar(40)
+  number     String?   @db.VarChar(30)
+  patientId  String?   @map("patient_id") @db.VarChar(40)
+  dentistId  String?   @map("dentist_id") @db.VarChar(40)
+  date       DateTime? @db.Date
+  valid      DateTime? @db.Date
+  status     String?   @db.VarChar(12)
+  acceptedAt DateTime? @map("accepted_at") @db.Date
+  signature  String?   @db.VarChar(160)
+  items      String?   @db.LongText
+  discount   Decimal?  @default(0.00) @db.Decimal(12, 2)
+  conditions String?   @db.Text
+  planId     String?   @map("plan_id") @db.VarChar(40)
+  sentAt     DateTime? @map("sent_at") @db.Date
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("quotes")
+}
+
+model Invoice {
+  id        String    @id @db.VarChar(40)
+  number    String?   @db.VarChar(30)
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  clinicId  String?   @map("clinic_id") @db.VarChar(40)
+  dentistId String?   @map("dentist_id") @db.VarChar(40)
+  date      DateTime? @db.Date
+  due       DateTime? @db.Date
+  items     String?   @db.LongText
+  discount  Decimal?  @default(0.00) @db.Decimal(12, 2)
+  apptId    String?   @map("appt_id") @db.VarChar(40)
+  planId    String?   @map("plan_id") @db.VarChar(40)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@index([clinicId, date], map: "invoices_clinic_id_date")
+  @@index([patientId], map: "invoices_patient_id")
+  @@map("invoices")
+}
+
+model Payment {
+  id        String    @id @db.VarChar(40)
+  invoiceId String?   @map("invoice_id") @db.VarChar(40)
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  clinicId  String?   @map("clinic_id") @db.VarChar(40)
+  date      DateTime? @db.Date
+  amount    Decimal?  @default(0.00) @db.Decimal(12, 2)
+  method    String?   @db.VarChar(20)
+  kind      String?   @db.VarChar(20)
+  ref       String?   @db.VarChar(160)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@index([clinicId, date], map: "payments_clinic_id_date")
+  @@index([invoiceId], map: "payments_invoice_id")
+  @@index([patientId], map: "payments_patient_id")
+  @@map("payments")
+}
+
+// ---------------------------------------------------------
+// Opérations : stock, fournisseurs, laboratoire
+// ---------------------------------------------------------
+
+model Supplier {
+  id        String   @id @db.VarChar(40)
+  name      String?  @db.VarChar(120)
+  contact   String?  @db.VarChar(120)
+  phone     String?  @db.VarChar(40)
+  email     String?  @db.VarChar(160)
+  city      String?  @db.VarChar(80)
+  cats      String?  @db.LongText
+  delay     Int?     @default(3)
+  rating    Decimal? @default(0.00) @db.Decimal(12, 2)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("suppliers")
+}
+
+model Product {
+  id         String    @id @db.VarChar(40)
+  clinicId   String?   @map("clinic_id") @db.VarChar(40)
+  name       String?   @db.VarChar(160)
+  cat        String?   @db.VarChar(60)
+  qty        Int?      @default(0)
+  min        Int?      @default(0)
+  unit       String?   @db.VarChar(60)
+  supplierId String?   @map("supplier_id") @db.VarChar(40)
+  price      Decimal?  @default(0.00) @db.Decimal(12, 2)
+  lot        String?   @db.VarChar(40)
+  exp        DateTime? @db.Date
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("products")
+}
+
+model PurchaseOrder {
+  id         String    @id @db.VarChar(40)
+  number     String?   @db.VarChar(20)
+  supplierId String?   @map("supplier_id") @db.VarChar(40)
+  clinicId   String?   @map("clinic_id") @db.VarChar(40)
+  date       DateTime? @db.Date
+  status     String?   @db.VarChar(12)
+  lines      String?   @db.LongText
+  expected   DateTime? @db.Date
+  received   DateTime? @db.Date
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("purchase_orders")
+}
+
+model Lab {
+  id          String   @id @db.VarChar(40)
+  name        String?  @db.VarChar(120)
+  city        String?  @db.VarChar(80)
+  contact     String?  @db.VarChar(120)
+  phone       String?  @db.VarChar(40)
+  email       String?  @db.VarChar(160)
+  delay       Int?     @default(7)
+  specialties String?  @db.LongText
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("labs")
+}
+
+model LabCase {
+  id        String    @id @db.VarChar(40)
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  labId     String?   @map("lab_id") @db.VarChar(40)
+  type      String?   @db.VarChar(120)
+  teeth     String?   @db.VarChar(60)
+  shade     String?   @db.VarChar(20)
+  sent      DateTime? @db.Date
+  due       DateTime? @db.Date
+  status    String?   @db.VarChar(16)
+  price     Decimal?  @default(0.00) @db.Decimal(12, 2)
+  notes     String?   @db.Text
+  received  DateTime? @db.Date
+  dentistId String?   @map("dentist_id") @db.VarChar(40)
+  clinicId  String?   @map("clinic_id") @db.VarChar(40)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("lab_cases")
+}
+
+// ---------------------------------------------------------
+// Relation patient
+// ---------------------------------------------------------
+
+model Message {
+  id        String    @id @db.VarChar(40)
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  dir       String?   @db.VarChar(4)
+  channel   String?   @db.VarChar(12)
+  text      String?   @db.Text
+  at        DateTime? @db.DateTime(0)
+  auto      Boolean?  @default(false)
+  status    String?   @db.VarChar(12)
+  seen      Boolean?  @default(false)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@index([patientId, at], map: "messages_patient_id_at")
+  @@map("messages")
+}
+
+model Template {
+  id        String   @id @db.VarChar(40)
+  cat       String?  @db.VarChar(60)
+  name      String?  @db.VarChar(120)
+  text      String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("templates")
+}
+
+model ReminderRule {
+  id            String   @id @db.VarChar(40)
+  name          String?  @db.VarChar(120)
+  when          String?  @db.VarChar(160)
+  kind          String?  @db.VarChar(20)
+  offsetMinutes Int?     @default(0) @map("offset_minutes")
+  channels      String?  @db.LongText
+  on            Boolean? @default(true)
+  templateId    String?  @map("template_id") @db.VarChar(40)
+  sent          Int?     @default(0)
+  createdAt     DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("reminder_rules")
+}
+
+model ReminderLog {
+  id        Int      @id @default(autoincrement())
+  apptId    String?  @map("appt_id") @db.VarChar(40)
+  ruleId    String?  @map("rule_id") @db.VarChar(40)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@unique([apptId, ruleId], map: "reminder_logs_appt_id_rule_id")
+  @@map("reminder_logs")
+}
+
+model Followup {
+  id        String    @id @db.VarChar(40)
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  type      String?   @db.VarChar(80)
+  due       DateTime? @db.Date
+  note      String?   @db.VarChar(255)
+  status    String?   @db.VarChar(12)
+  auto      Boolean?  @default(false)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("followups")
+}
+
+model Review {
+  id        String    @id @db.VarChar(40)
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  dentistId String?   @map("dentist_id") @db.VarChar(40)
+  clinicId  String?   @map("clinic_id") @db.VarChar(40)
+  date      DateTime? @db.Date
+  rating    Int?      @default(5)
+  comment   String?   @db.Text
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("reviews")
+}
+
+// ---------------------------------------------------------
+// Système
+// ---------------------------------------------------------
+
+model AuditLog {
+  id        Int       @id @default(autoincrement())
+  at        DateTime? @db.DateTime(0)
+  user      String?   @db.VarChar(160)
+  userId    String?   @map("user_id") @db.VarChar(40)
+  action    String?   @db.VarChar(200)
+  target    String?   @db.VarChar(255)
+  ip        String?   @db.VarChar(64)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+
+  @@index([at], map: "audit_logs_at")
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String    @id @db.VarChar(40)
+  at        DateTime? @db.DateTime(0)
+  kind      String?   @db.VarChar(20)
+  title     String?   @db.VarChar(160)
+  text      String?   @db.VarChar(500)
+  link      String?   @db.VarChar(160)
+  read      Boolean?  @default(false)
+  clinicId  String?   @map("clinic_id") @db.VarChar(40)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("notifications")
+}
+
+model MonthlyStat {
+  id          Int       @id @default(autoincrement())
+  clinicId    String?   @map("clinic_id") @db.VarChar(40)
+  month       DateTime? @db.Date
+  revenue     Decimal?  @default(0.00) @db.Decimal(12, 2)
+  consults    Int?      @default(0)
+  newPatients Int?      @default(0) @map("new_patients")
+  noshow      Decimal?  @default(0.00) @db.Decimal(12, 2)
+  fill        Int?      @default(0)
+  recurrent   Int?      @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("monthly_stats")
+}
+
+model DemoRequest {
+  id        Int      @id @default(autoincrement())
+  data      String?  @db.LongText
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("demo_requests")
+}
+
+model PatientOtp {
+  id        String    @id @db.VarChar(40)
+  patientId String?   @map("patient_id") @db.VarChar(40)
+  codeHash  String?   @map("code_hash") @db.VarChar(100)
+  expiresAt DateTime? @map("expires_at") @db.DateTime(0)
+  attempts  Int?      @default(0)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+
+  @@map("patient_otps")
+}
