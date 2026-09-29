@@ -1,0 +1,15 @@
+{
+  "name": "nacre",
+  "private": true,
+  "description": "Nacre — Dental Practice OS (React + Node/Express + MySQL)",
+  "scripts": {
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "setup": "npm run install:all && cd server && npm run db:reset",
+    "dev": "concurrently -n api,web -c blue,green \"cd server && npm run dev\" \"cd client && npm run dev\"",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

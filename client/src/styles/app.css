@@ -1,0 +1,13 @@
+/* Compléments spécifiques au client React */
+.btn:disabled{opacity:.5;pointer-events:none}
+.login-wrap{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:#FBFBFA}
+.login-side{background:linear-gradient(160deg,#0E1B2E,#1F4585);color:#E6ECF5;padding:48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.login-side::after{content:"";position:absolute;right:-160px;bottom:-160px;width:520px;height:520px;background:radial-gradient(circle,rgba(233,213,174,.22),transparent 65%)}
+.login-main{display:grid;place-items:center;padding:24px}
+@media (max-width:900px){.login-wrap{grid-template-columns:1fr}.login-side{display:none}}
+.demo-acc{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:var(--surface);text-align:left;width:100%;transition:all .15s}
+.demo-acc:hover{border-color:var(--primary);background:var(--primary-50)}
+.ai-text b{font-weight:600;color:var(--navy)}
+.ai-text em{color:var(--muted);font-size:11.5px}
+.otp-input{letter-spacing:.4em;font-size:18px;text-align:center}
+.nav a .count svg{width:11px;height:11px}
