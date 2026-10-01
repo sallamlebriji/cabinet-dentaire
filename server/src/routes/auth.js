@@ -54,6 +54,15 @@ router.post('/2fa/verify', limiter, ah(async (req, res) => {
   res.json(await mePayload(user));
 }));
 
+/* Comptes de démonstration affichés sur l'écran de connexion (désactivable : DEMO_MODE=false) */
+router.get('/demo-accounts', ah(async (req, res) => {
+  if (!cfg.demoMode) return res.json({ enabled: false, accounts: [] });
+  const users = await M.User.findAll({ where: { active: true }, order: [['role', 'ASC'], ['last', 'ASC']], attributes: ['email', 'first', 'last', 'title', 'role', 'isAdmin', 'clinicId'] });
+  const roles = Object.fromEntries((await M.RolePermission.findAll()).map(r => [r.role, r.label]));
+  const clinics = Object.fromEntries((await M.Clinic.findAll()).map(c => [c.id, c.city]));
+  res.json({ enabled: true, password: 'Nacre2026!', accounts: users.map(u => ({ email: u.email, name: staffName(u), role: [roles[u.role], u.isAdmin && u.role !== 'admin' ? 'Admin' : '', u.clinicId === 'all' ? 'tous les sites' : clinics[u.clinicId]].filter(Boolean).join(' · ') })) });
+}));
+
 router.post('/logout', ah(async (req, res) => { await closeSession(req, res, 'staff'); res.json({ ok: true }); }));
 
 router.get('/me', requireStaff, ah(async (req, res) => res.json(await mePayload(req.user))));

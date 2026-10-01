@@ -1,25 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { post } from '../lib/api';
+import { get, post } from '../lib/api';
 import { useAuth } from '../context/Auth';
 import { Icon, Field } from '../ui';
 
-const DEMO = [
-  ['s.bennani@atlas-dentaire.ma', 'Dr. Salma Bennani', 'Dentiste · Administratrice'],
-  ['direction@atlas-dentaire.ma', 'Rachid El Ouali', 'Administrateur · 3 cabinets'],
-  ['y.alaoui@atlas-dentaire.ma', 'Dr. Youssef Alaoui', 'Dentiste'],
-  ['accueil.fes@atlas-dentaire.ma', 'Mounia Rahmani', 'Secrétaire'],
-  ['h.ziani@atlas-dentaire.ma', 'Hajar Ziani', 'Assistante'],
-  ['compta@atlas-dentaire.ma', 'Adil Benomar', 'Comptable'],
-  ['s.kabbaj@atlas-dentaire.ma', 'Samira Kabbaj', 'Gestionnaire'],
-  ['accueil.meknes@atlas-dentaire.ma', 'Ghita Amrani', 'Secrétaire · Meknès']
-];
 
 export default function Login() {
   const { status, reload, notice } = useAuth(); const nav = useNavigate(); const loc = useLocation();
   const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
   const [mfa, setMfa] = useState(null); const [code, setCode] = useState('');
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  const [demo, setDemo] = useState(null);
+  useEffect(() => { get('/auth/demo-accounts').then(setDemo).catch(() => setDemo(null)); }, []);
   if (status === 'in') return <Navigate to={(loc.state && loc.state.from) || '/app'} replace />;
 
   const submit = async e => {
@@ -57,10 +49,10 @@ export default function Login() {
             <button className="btn primary lg" disabled={busy}>{busy ? 'Vérification…' : mfa ? 'Valider' : 'Se connecter'}</button>
             {mfa && <button type="button" className="btn ghost" onClick={() => { setMfa(null); setCode(''); }}>Retour</button>}
           </div>
-          {import.meta.env.DEV && !mfa && <>
+          {demo && demo.enabled && demo.accounts.length > 0 && !mfa && <>
             <div className="divider" />
-            <div className="xs muted mb-8">Comptes de démonstration — mot de passe <b className="mono">Nacre2026!</b></div>
-            <div className="col gap-6">{DEMO.map(([em, n, r]) => <button type="button" key={em} className="demo-acc" onClick={() => { setEmail(em); setPassword('Nacre2026!'); }}><span className="avatar xs" style={{ background: 'var(--navy)' }}>{n.replace('Dr. ', '')[0]}</span><span className="grow small"><b style={{ fontWeight: 500 }}>{n}</b> <span className="muted">· {r}</span></span></button>)}</div>
+            <div className="xs muted mb-8">Comptes de démonstration — mot de passe <b className="mono">{demo.password}</b></div>
+            <div className="col gap-6">{demo.accounts.map(a => <button type="button" key={a.email} className="demo-acc" onClick={() => { setEmail(a.email); setPassword(demo.password); }}><span className="avatar xs" style={{ background: 'var(--navy)' }}>{a.name.replace('Dr. ', '')[0]}</span><span className="grow small"><b style={{ fontWeight: 500 }}>{a.name}</b> <span className="muted">· {a.role}</span></span></button>)}</div>
           </>}
         </div>
       </form>

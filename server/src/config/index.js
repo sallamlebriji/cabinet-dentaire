@@ -20,6 +20,8 @@ module.exports = {
   },
   jwtSecret: env.JWT_SECRET || 'dev-only-secret-change-me-dev-only-secret-change-me',
   sessionMinutes: +env.SESSION_MINUTES || 30,
+  // Affiche les comptes de démonstration sur l'écran de connexion (par défaut : hors production)
+  demoMode: env.DEMO_MODE ? env.DEMO_MODE === 'true' : env.NODE_ENV !== 'production',
   anthropicKey: env.ANTHROPIC_API_KEY || '',
   uploadDir: path.join(__dirname, '../../uploads')
 };

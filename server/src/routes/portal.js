@@ -29,7 +29,7 @@ router.post('/otp/request', otpLimiter, ah(async (req, res) => {
     await M.PatientOtp.destroy({ where: { patientId: p.id } });
     await M.PatientOtp.create({ patientId: p.id, codeHash: await bcrypt.hash(code, 8), expiresAt: new Date(Date.now() + 10 * 60000), attempts: 0 });
     console.log(`[SMS → ${p.phone}] Votre code de connexion Nacre : ${code} (valable 10 min)`);
-    if (!cfg.isProd) out.devCode = code; // facilite les tests en local uniquement
+    if (cfg.demoMode) out.devCode = code; // mode démo uniquement : code affiché pour faciliter les tests
   }
   res.json(out); // réponse identique que le numéro existe ou non (pas d'énumération)
 }));
@@ -43,12 +43,12 @@ router.post('/otp/verify', otpLimiter, ah(async (req, res) => {
 }));
 /* Accès démo direct (désactivé en production) */
 router.post('/demo', ah(async (req, res) => {
-  if (cfg.isProd) throw httpError(404, 'Route introuvable');
+  if (!cfg.demoMode) throw httpError(404, 'Route introuvable');
   const p = await M.Patient.findByPk(req.body.patientId); if (!p) throw httpError(404, 'Patient introuvable');
   await openSession(req, res, { kind: 'patient', patientId: p.id }); req.patient = p; await audit(req, 'Connexion portail patient', 'Démo'); res.json({ ok: true });
 }));
 router.get('/demo-accounts', ah(async (req, res) => {
-  if (cfg.isProd) return res.json([]);
+  if (!cfg.demoMode) return res.json([]);
   res.json(await M.Patient.findAll({ where: { id: ['p1', 'p12', 'p14', 'p15'] }, attributes: ['id', 'first', 'last', 'phone'] }));
 }));
 router.post('/logout', ah(async (req, res) => { await closeSession(req, res, 'patient'); res.json({ ok: true }); }));
